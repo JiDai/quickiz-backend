@@ -1,4 +1,3 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 interface Quiz {
@@ -11,9 +10,9 @@ const supabase = createClient(
 	process.env.SUPABASE_KEY!,
 );
 
-async function checkAuth(request: VercelRequest): Promise<boolean> {
+async function checkAuth(request: Request): Promise<boolean> {
 	return true;
-	const authHeader = request.headers.authorization;
+	const authHeader = request.headers.get('authorization');
 	if (!authHeader) {
 		throw new Error('No authorization header');
 	}
@@ -31,49 +30,52 @@ async function checkAuth(request: VercelRequest): Promise<boolean> {
 	return true;
 }
 
-export async function GET(request: VercelRequest, response: VercelResponse) {
+export async function POST(request: Request, response: Response) {
 	const isAuthenticated = await checkAuth(request);
 	if (!isAuthenticated) {
-		return response.status(401).json({ error: 'Unauthorized' });
+		return Response.json(
+			{
+				error: 'Missing required fields',
+			},
+			{ status: 400 },
+		);
 	}
 
-	// try {
-	// 	const quizData: Quiz = request.body;
-	//
-	// 	if (!quizData.title || !quizData.channel_id) {
-	// 		return response.status(400).json({ error: 'Missing required fields' });
-	// 	}
-	//
-	// 	const { data: quiz, error } = await supabase
-	// 		.from('quiz')
-	// 		.insert({ title: quizData.title, channel_id: quizData.channel_id })
-	// 		.select()
-	// 		.single();
-	//
-	// 	if (error) {
-	// 		return response.status(500).json({ error: error.message });
-	// 	}
-	//
-	// 	return response.status(201).json({ quiz_id: quiz.id });
-	// } catch (error) {
-	// 	return response.status(500).json({ error: 'Internal server error' });
-	// }
+	try {
+		const quizData: Quiz = await request.json();
 
-	return Response.json({
-		status: 'ok',
-	});
-}
+		console.log(`quizData: `, quizData);
+		if (!quizData.title) {
+			return Response.json(
+				{
+					error: 'Missing required fields',
+				},
+				{ status: 400 },
+			);
+		}
 
-const ALLOWED_ORIGIN = process.env.NODE_ENV === 'production' ? 'https://app.example' : '*';
+		const { data, error, status } = await supabase.from('quiz').insert({ title: quizData.title });
+		console.log(`data: `, data, status);
+		if (error) {
+			console.log(`ERROR: `, error);
+			return Response.json(
+				{
+					error: error.message,
+				},
+				{ status: 500 },
+			);
+		}
 
-export async function OPTIONS() {
-	return new Response(null, {
-		status: 200,
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-			'Access-Control-Allow-Credentials': 'true',
-		},
-	});
+		return Response.json({
+			status: 'ok',
+		});
+	} catch (error) {
+		console.log(`ERROR: `, error);
+		return Response.json(
+			{
+				error: error.message,
+			},
+			{ status: 500 },
+		);
+	}
 }
