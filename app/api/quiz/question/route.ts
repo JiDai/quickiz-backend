@@ -42,9 +42,9 @@ export async function POST(request: Request, response: Response) {
 	}
 
 	try {
-		const quizData: Quiz = await request.json();
+		const question: Quiz = await request.json();
 
-		if (!quizData.title) {
+		if (!question.title) {
 			return Response.json(
 				{
 					error: 'Missing required fields',
@@ -54,10 +54,9 @@ export async function POST(request: Request, response: Response) {
 		}
 
 		const { data, error, status } = await supabase
-			.from('quiz')
-			.insert({ title: quizData.title })
-			.select();
-
+			.from('question')
+			.insert({ title: question.title });
+		console.log(`data: `, data, status);
 		if (error) {
 			console.log(`ERROR: `, error);
 			return Response.json(
@@ -67,8 +66,9 @@ export async function POST(request: Request, response: Response) {
 				{ status: 500 },
 			);
 		}
+
 		return Response.json({
-			id: data[0].id,
+			status: 'ok',
 		});
 	} catch (error) {
 		console.log(`ERROR: `, error);
