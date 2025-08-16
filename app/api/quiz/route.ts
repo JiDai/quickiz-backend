@@ -30,6 +30,33 @@ async function checkAuth(request: Request): Promise<boolean> {
 	return true;
 }
 
+export async function GET(request: Request, response: Response) {
+	try {
+		const { data, error, status } = await supabase.from('quiz').select().order('created_at', {
+			ascending: false,
+		});
+
+		if (error) {
+			console.log(`ERROR: `, error);
+			return Response.json(
+				{
+					error: error.message,
+				},
+				{ status: 500 },
+			);
+		}
+		return Response.json(data);
+	} catch (error) {
+		console.log(`ERROR: `, error);
+		return Response.json(
+			{
+				error: error.message,
+			},
+			{ status: 500 },
+		);
+	}
+}
+
 export async function POST(request: Request, response: Response) {
 	const isAuthenticated = await checkAuth(request);
 	if (!isAuthenticated) {
