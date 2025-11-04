@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { runQuery } from '../../utils/runQuery';
+import { checkAuth } from '../../utils/checkAuth';
 
 interface Quiz {
 	title: string;
@@ -10,100 +12,34 @@ const supabase = createClient(
 	process.env.SUPABASE_KEY!,
 );
 
-async function checkAuth(request: Request): Promise<boolean> {
-	return true;
-	const authHeader = request.headers.get('authorization');
-	if (!authHeader) {
-		throw new Error('No authorization header');
-	}
+export async function GET() {
+	const [data, error] = await runQuery(
+		async () =>
+			await supabase
+				.from('quiz')
+				.select('*, questions:question!quiz_id(*)')
+				.is('deleted_at', null)
+				.order('created_at', {
+					ascending: false,
+				}),
+	);
 
-	const token = authHeader.replace('Bearer ', '');
-	const {
-		data: { user },
-		error,
-	} = await supabase.auth.getUser(token);
-
-	if (error || !user) {
-		throw error || new Error('Invalid token');
-	}
-
-	return true;
-}
-
-export async function GET(request: Request, response: Response) {
-	try {
-		const { data, error, status } = await supabase.from('quiz').select().order('created_at', {
-			ascending: false,
-		});
-
-		if (error) {
-			console.log(`ERROR: `, error);
-			return Response.json(
-				{
-					error: error.message,
-				},
-				{ status: 500 },
-			);
-		}
+	if (data) {
 		return Response.json(data);
-	} catch (error) {
-		console.log(`ERROR: `, error);
-		return Response.json(
-			{
-				error: error.message,
-			},
-			{ status: 500 },
-		);
-	}
+	} else return error;
 }
 
 export async function POST(request: Request, response: Response) {
-	const isAuthenticated = await checkAuth(request);
-	if (!isAuthenticated) {
-		return Response.json(
-			{
-				error: 'Missing auth',
-			},
-			{ status: 400 },
-		);
-	}
+	await checkAuth(request, supabase);
 
-	try {
-		const quizData: Quiz = await request.json();
+	const quizData: Quiz = await request.json();
+	const [data, error] = await runQuery(
+		async () => await supabase.from('quiz').insert({ title: quizData.title }).select(),
+	);
 
-		if (!quizData.title) {
-			return Response.json(
-				{
-					error: 'Missing required fields',
-				},
-				{ status: 400 },
-			);
-		}
-
-		const { data, error, status } = await supabase
-			.from('quiz')
-			.insert({ title: quizData.title })
-			.select();
-
-		if (error) {
-			console.log(`ERROR: `, error);
-			return Response.json(
-				{
-					error: error.message,
-				},
-				{ status: 500 },
-			);
-		}
+	if (data) {
 		return Response.json({
 			id: data[0].id,
 		});
-	} catch (error) {
-		console.log(`ERROR: `, error);
-		return Response.json(
-			{
-				error: error.message,
-			},
-			{ status: 500 },
-		);
-	}
+	} else return error;
 }
