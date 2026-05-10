@@ -1,19 +1,26 @@
-export async function checkAuth(request: Request, supabase): Promise<boolean> {
-	return true;
+import { createHmac } from 'crypto';
+
+type AuthResult = Response | { channelId: string };
+
+export async function checkAuth(request: Request): Promise<AuthResult> {
 	const authHeader = request.headers.get('authorization');
-	if (!authHeader) {
-		throw new Error('No authorization header');
-	}
+	if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
 	const token = authHeader.replace('Bearer ', '');
-	const {
-		data: { user },
-		error,
-	} = await supabase.auth.getUser(token);
+	const parts = token.split('.');
+	if (parts.length !== 3) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-	if (error || !user) {
-		throw error || new Error('Invalid token');
-	}
+	const [headerB64, payloadB64, signatureB64] = parts;
+	const secret = Buffer.from(process.env.TWITCH_EXTENSION_SECRET!, 'base64');
+	const expectedSig = createHmac('sha256', secret)
+		.update(`${headerB64}.${payloadB64}`)
+		.digest('base64url');
 
-	return true;
+	if (expectedSig !== signatureB64) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+	const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+	if (!payload.exp || payload.exp < Date.now() / 1000)
+		return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+	return { channelId: payload.channel_id };
 }

@@ -1,20 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
-import { runQuery } from '../../../utils/runQuery';
 import { checkAuth } from '../../../utils/checkAuth';
+import { assertQuizNotActive } from '../../../utils/assertQuizNotActive';
+import { runQuery } from '../../../utils/runQuery';
+import supabase from '../../../utils/supabase';
 
 interface Quiz {
 	title: string;
 	description: string;
-	channel_id: string;
 }
 
-const supabase = createClient(
-	`https://${process.env.SUPABASE_ID}.supabase.co`,
-	process.env.SUPABASE_KEY!,
-);
-
 export async function GET(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
-	await checkAuth(request, supabase);
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
 
 	const { quizId } = await params;
 
@@ -24,6 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ quiz
 				.from('quiz')
 				.select('*, questions:question!quiz_id(*)')
 				.eq('id', quizId)
+				.eq('streamer_id', auth.channelId)
 				.single(),
 	);
 
@@ -33,10 +30,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ quiz
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
-	await checkAuth(request, supabase);
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
+
+	const { quizId } = await params;
+
+	const activeError = await assertQuizNotActive(quizId);
+	if (activeError) return activeError;
 
 	const quizData: Quiz = await request.json();
-	const { quizId } = await params;
 
 	const [data, error] = await runQuery(
 		async () =>
@@ -44,13 +46,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ qu
 				.from('quiz')
 				.update({ title: quizData.title, description: quizData.description })
 				.eq('id', quizId)
+				.eq('streamer_id', auth.channelId)
 				.select(),
 	);
 
 	if (data) {
-		return Response.json({
-			id: data[0].id,
-		});
+		return Response.json({ id: data[0].id });
 	} else return error;
 }
 
@@ -58,13 +59,22 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ quizId: string }> },
 ) {
-	await checkAuth(request, supabase);
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
 
 	const { quizId } = await params;
 
+	const activeError = await assertQuizNotActive(quizId);
+	if (activeError) return activeError;
+
 	const [data, error] = await runQuery(
 		async () =>
-			await supabase.from('quiz').update({ deleted_at: new Date() }).eq('id', quizId).select(),
+			await supabase
+				.from('quiz')
+				.update({ deleted_at: new Date() })
+				.eq('id', quizId)
+				.eq('streamer_id', auth.channelId)
+				.select(),
 	);
 
 	if (data) {

@@ -1,19 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
-import { QuestionRequest } from '../../../../types/questionRequest';
 import { checkAuth } from '../../../../utils/checkAuth';
+import { assertQuizNotActive } from '../../../../utils/assertQuizNotActive';
+import { QuestionRequest } from '../../../../types/questionRequest';
 import { runQuery } from '../../../../utils/runQuery';
+import supabase from '../../../../utils/supabase';
 
-const supabase = createClient(
-	`https://${process.env.SUPABASE_ID}.supabase.co`,
-	process.env.SUPABASE_KEY!,
-);
+export async function POST(
+	request: Request,
+	{ params }: { params: Promise<{ quizId: string }> },
+) {
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-	await checkAuth(request, supabase);
+	const { quizId } = await params;
+
+	const activeError = await assertQuizNotActive(quizId);
+	if (activeError) return activeError;
 
 	const body: QuestionRequest = await request.json();
-
-	const { id } = (await params) || {};
 
 	const [data, error] = await runQuery(
 		async () =>
@@ -28,12 +31,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 					good_answer: body.goodAnswer,
 					quiz_id: body.quizId,
 				})
-				.eq('id', id),
+				.eq('id', quizId),
 	);
 	console.log(`data: `, data, error);
 	if (data) {
-		return Response.json({
-			status: 'ok',
-		});
+		return Response.json({ status: 'ok' });
 	} else return error;
 }

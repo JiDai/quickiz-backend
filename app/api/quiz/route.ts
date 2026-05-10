@@ -1,27 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
-import { runQuery } from '../../utils/runQuery';
 import { checkAuth } from '../../utils/checkAuth';
+import { runQuery } from '../../utils/runQuery';
+import supabase from '../../utils/supabase';
 
 interface Quiz {
 	title: string;
-	channel_id: string;
 }
 
-const supabase = createClient(
-	`https://${process.env.SUPABASE_ID}.supabase.co`,
-	process.env.SUPABASE_KEY!,
-);
+export async function GET(request: Request) {
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
 
-export async function GET() {
 	const [data, error] = await runQuery(
 		async () =>
 			await supabase
 				.from('quiz')
 				.select('*, questions:question!quiz_id(*)')
+				.eq('streamer_id', auth.channelId)
 				.is('deleted_at', null)
-				.order('created_at', {
-					ascending: false,
-				}),
+				.order('created_at', { ascending: false }),
 	);
 
 	if (data) {
@@ -30,16 +26,19 @@ export async function GET() {
 }
 
 export async function POST(request: Request, response: Response) {
-	await checkAuth(request, supabase);
+	const auth = await checkAuth(request);
+	if (auth instanceof Response) return auth;
 
 	const quizData: Quiz = await request.json();
 	const [data, error] = await runQuery(
-		async () => await supabase.from('quiz').insert({ title: quizData.title }).select(),
+		async () =>
+			await supabase
+				.from('quiz')
+				.insert({ title: quizData.title, streamer_id: auth.channelId })
+				.select(),
 	);
 
 	if (data) {
-		return Response.json({
-			id: data[0].id,
-		});
+		return Response.json({ id: data[0].id });
 	} else return error;
 }
