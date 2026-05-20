@@ -21,7 +21,11 @@ export async function GET(request: Request) {
 	);
 
 	if (data) {
-		return Response.json(data);
+		const sorted = data.map((quiz) => ({
+			...quiz,
+			questions: [...(quiz.questions ?? [])].sort((a, b) => a.position - b.position),
+		}));
+		return Response.json(sorted);
 	} else return error;
 }
 

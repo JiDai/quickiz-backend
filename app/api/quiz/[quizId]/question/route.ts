@@ -18,6 +18,15 @@ export async function POST(
 
 	const body: QuestionRequest = await request.json();
 
+	const { data: existing } = await supabase
+		.from('question')
+		.select('position')
+		.eq('quiz_id', body.quizId)
+		.is('deleted_at', null)
+		.order('position', { ascending: false })
+		.limit(1);
+	const nextPosition = (existing?.[0]?.position ?? 0) + 1;
+
 	const [data, error] = await runQuery(
 		async () =>
 			await supabase
@@ -30,6 +39,7 @@ export async function POST(
 					answer4: body.answer4,
 					good_answer: body.goodAnswer,
 					quiz_id: body.quizId,
+					position: nextPosition,
 				})
 				.eq('id', quizId),
 	);
