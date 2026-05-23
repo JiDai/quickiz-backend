@@ -1,11 +1,15 @@
 import { checkAuth } from '../../../utils/checkAuth';
 import { assertQuizNotActive } from '../../../utils/assertQuizNotActive';
+import { checkPremium } from '../../../utils/checkPremium';
 import { runQuery } from '../../../utils/runQuery';
 import supabase from '../../../utils/supabase';
+
+type ScoringType = 'correct_count' | 'time_bonus' | 'weighted';
 
 interface Quiz {
 	title: string;
 	description: string;
+	scoring_type?: ScoringType;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
@@ -39,12 +43,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ qu
 	if (activeError) return activeError;
 
 	const quizData: Quiz = await request.json();
+	const updatePayload: Record<string, unknown> = { title: quizData.title, description: quizData.description };
+
+	if (quizData.scoring_type !== undefined) {
+		if (quizData.scoring_type !== 'correct_count') {
+			const isPremium = await checkPremium(auth.channelId);
+			if (!isPremium) return Response.json({ error: 'Premium required for this scoring type' }, { status: 403 });
+		}
+		updatePayload.scoring_type = quizData.scoring_type;
+	}
 
 	const [data, error] = await runQuery(
 		async () =>
 			await supabase
 				.from('quiz')
-				.update({ title: quizData.title, description: quizData.description })
+				.update(updatePayload)
 				.eq('id', quizId)
 				.eq('streamer_id', auth.channelId)
 				.select(),

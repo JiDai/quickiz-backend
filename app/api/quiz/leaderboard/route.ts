@@ -7,16 +7,18 @@ export async function GET(request: Request) {
 
 	const { data: quiz } = await supabase
 		.from('quiz')
-		.select('id')
+		.select('id, scoring_type')
 		.eq('streamer_id', auth.channelId)
-		.eq('active', true)
+		.neq('state', 'idle')
 		.single();
 
 	if (!quiz) return Response.json([]);
 
+	const scoringType: string = quiz.scoring_type ?? 'correct_count';
+
 	const { data: questions } = await supabase
 		.from('question')
-		.select('id, good_answer')
+		.select('id, good_answer, points, started_at, timer_duration')
 		.eq('quiz_id', quiz.id)
 		.is('deleted_at', null);
 
@@ -29,19 +31,40 @@ export async function GET(request: Request) {
 
 	if (!answers?.length) return Response.json([]);
 
-	const map: Record<string, { name: string; correct: number }> = {};
+	const map: Record<string, { name: string; score: number }> = {};
+
 	for (const row of answers) {
 		const question = questions.find((q) => q.id === row.question_id);
 		if (!question) continue;
+
 		if (!map[row.viewer_id]) {
-			map[row.viewer_id] = { name: row.viewer_name ?? row.viewer_id, correct: 0 };
+			map[row.viewer_id] = { name: row.viewer_name ?? row.viewer_id, score: 0 };
 		}
-		if (Number(row.answer) === Number(question.good_answer)) map[row.viewer_id].correct++;
+
+		const isCorrect = Number(row.answer) === Number(question.good_answer);
+		if (!isCorrect) continue;
+
+		if (scoringType === 'correct_count') {
+			map[row.viewer_id].score += 1;
+		} else if (scoringType === 'time_bonus') {
+			const duration = question.timer_duration ?? 30;
+			const startedAt = question.started_at ? new Date(question.started_at).getTime() : null;
+			const answeredAt = row.created_at ? new Date(row.created_at).getTime() : null;
+			if (startedAt && answeredAt) {
+				const elapsed = (answeredAt - startedAt) / 1000;
+				const pts = Math.max(0, Math.floor(duration - elapsed));
+				map[row.viewer_id].score += pts;
+			} else {
+				map[row.viewer_id].score += 100;
+			}
+		} else if (scoringType === 'weighted') {
+			map[row.viewer_id].score += question.points ?? 1;
+		}
 	}
 
-	return Response.json(
-		Object.entries(map)
-			.map(([viewerId, { name, correct }]) => ({ viewerId, name, correct }))
-			.sort((a, b) => b.correct - a.correct),
-	);
+	const scores = Object.entries(map)
+		.map(([viewerId, { name, score }]) => ({ viewerId, name, score }))
+		.sort((a, b) => b.score - a.score);
+
+	return Response.json({ scores, scoringType });
 }

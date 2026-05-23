@@ -10,6 +10,7 @@ interface QuestionUpdate {
 	answer3: string;
 	answer4: string;
 	goodAnswer: number;
+	points?: number;
 }
 
 async function getQuizIdForQuestion(questionId: string): Promise<string | null> {
@@ -64,6 +65,7 @@ export async function PATCH(
 					answer3: questionData.answer3,
 					answer4: questionData.answer4,
 					good_answer: questionData.goodAnswer,
+					...(questionData.points !== undefined && { points: questionData.points }),
 				})
 				.eq('id', questionId)
 				.select(),

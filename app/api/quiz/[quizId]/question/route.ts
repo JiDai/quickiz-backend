@@ -40,6 +40,7 @@ export async function POST(
 					good_answer: body.goodAnswer,
 					quiz_id: body.quizId,
 					position: nextPosition,
+					points: body.points ?? 1,
 				})
 				.eq('id', quizId),
 	);

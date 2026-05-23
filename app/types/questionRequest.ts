@@ -7,6 +7,7 @@ export interface QuestionRequest {
 	answer4: string;
 	goodAnswer: string;
 	quizId: string;
+	points?: number;
 }
 
 export interface QuizRequest {
