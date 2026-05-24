@@ -3,7 +3,9 @@ import supabase from '../../utils/supabase';
 
 export async function GET(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { data, error } = await supabase
 		.from('streamer')

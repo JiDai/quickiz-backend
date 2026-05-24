@@ -10,7 +10,9 @@ type Body = {
 
 export async function POST(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { questionId, answer, viewerId, viewerName }: Body = await request.json();
 

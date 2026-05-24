@@ -9,7 +9,9 @@ import supabase from '../../../utils/supabase';
  */
 export async function GET(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { data: quiz, error } = await supabase
 		.from('quiz')
@@ -36,7 +38,9 @@ export async function GET(request: Request) {
 	switch (quiz.state) {
 		case 'question': {
 			const running = questions.find((q: { state: string }) => q.state === 'running');
-			if (!running) return Response.json({ stateName: 'IDLE', stateData: {} });
+			if (!running) {
+				return Response.json({ stateName: 'IDLE', stateData: {} });
+			}
 			return Response.json({
 				stateName: 'QUESTION',
 				stateData: { question: running, duration: 30 },
@@ -44,7 +48,9 @@ export async function GET(request: Request) {
 		}
 		case 'answer_reveal': {
 			const finished = questions.findLast((q: { state: string }) => q.state === 'finished');
-			if (!finished) return Response.json({ stateName: 'IDLE', stateData: {} });
+			if (!finished) {
+				return Response.json({ stateName: 'IDLE', stateData: {} });
+			}
 			return Response.json({ stateName: 'ANSWER_REVEAL', stateData: { question: finished } });
 		}
 		case 'leaderboard': {

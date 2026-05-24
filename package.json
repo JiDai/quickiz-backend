@@ -1,21 +1,25 @@
 {
 	"name": "backend",
-	"module": "app/api/index.ts",
 	"private": true,
+	"module": "app/api/index.ts",
 	"scripts": {
-		"devv": "vercel dev"
-	},
-	"devDependencies": {
-		"@types/node": "latest",
-		"@types/react": "19.1.8",
-		"typescript": "5.8.3"
+		"devv": "vercel dev",
+		"lint": "oxlint --fix",
+		"format": "oxfmt --write"
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "2.49.4",
 		"@vercel/node": "5.1.15",
 		"cors": "2.8.5",
 		"express": "5.1.0",
-		"next": "15.4.4"
+		"next": "16.2.6"
+	},
+	"devDependencies": {
+		"@types/node": "latest",
+		"@types/react": "19.1.8",
+		"oxfmt": "0.51.0",
+		"oxlint": "1.66.0",
+		"typescript": "5.8.3"
 	},
 	"packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
 }

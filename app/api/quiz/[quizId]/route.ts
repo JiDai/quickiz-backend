@@ -14,7 +14,9 @@ interface Quiz {
 
 export async function GET(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { quizId } = await params;
 
@@ -30,25 +32,39 @@ export async function GET(request: Request, { params }: { params: Promise<{ quiz
 
 	if (data) {
 		return Response.json(data);
-	} else return error;
+	} else {
+		return error;
+	}
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { quizId } = await params;
 
 	const activeError = await assertQuizNotActive(quizId);
-	if (activeError) return activeError;
+	if (activeError) {
+		return activeError;
+	}
 
 	const quizData: Quiz = await request.json();
-	const updatePayload: Record<string, unknown> = { title: quizData.title, description: quizData.description };
+	const updatePayload: Record<string, unknown> = {
+		title: quizData.title,
+		description: quizData.description,
+	};
 
 	if (quizData.scoring_type !== undefined) {
 		if (quizData.scoring_type !== 'correct_count') {
 			const isPremium = await checkPremium(auth.channelId);
-			if (!isPremium) return Response.json({ error: 'Premium required for this scoring type' }, { status: 403 });
+			if (!isPremium) {
+				return Response.json(
+					{ error: 'Premium required for this scoring type' },
+					{ status: 403 },
+				);
+			}
 		}
 		updatePayload.scoring_type = quizData.scoring_type;
 	}
@@ -65,7 +81,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ qu
 
 	if (data) {
 		return Response.json({ id: data[0].id });
-	} else return error;
+	} else {
+		return error;
+	}
 }
 
 export async function DELETE(
@@ -73,12 +91,16 @@ export async function DELETE(
 	{ params }: { params: Promise<{ quizId: string }> },
 ) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { quizId } = await params;
 
 	const activeError = await assertQuizNotActive(quizId);
-	if (activeError) return activeError;
+	if (activeError) {
+		return activeError;
+	}
 
 	const [data, error] = await runQuery(
 		async () =>
@@ -92,5 +114,7 @@ export async function DELETE(
 
 	if (data) {
 		return Response.json({});
-	} else return error;
+	} else {
+		return error;
+	}
 }

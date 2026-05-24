@@ -14,11 +14,7 @@ interface QuestionUpdate {
 }
 
 async function getQuizIdForQuestion(questionId: string): Promise<string | null> {
-	const { data } = await supabase
-		.from('question')
-		.select('quiz_id')
-		.eq('id', questionId)
-		.single();
+	const { data } = await supabase.from('question').select('quiz_id').eq('id', questionId).single();
 	return data?.quiz_id ?? null;
 }
 
@@ -34,7 +30,9 @@ export async function GET(
 
 	if (data) {
 		return Response.json(data);
-	} else return error;
+	} else {
+		return error;
+	}
 }
 
 export async function PATCH(
@@ -42,15 +40,21 @@ export async function PATCH(
 	{ params }: { params: Promise<{ questionId: string }> },
 ) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { questionId } = await params;
 
 	const quizId = await getQuizIdForQuestion(questionId);
-	if (!quizId) return Response.json({ error: 'Question not found' }, { status: 404 });
+	if (!quizId) {
+		return Response.json({ error: 'Question not found' }, { status: 404 });
+	}
 
 	const activeError = await assertQuizNotActive(quizId);
-	if (activeError) return activeError;
+	if (activeError) {
+		return activeError;
+	}
 
 	const questionData: QuestionUpdate = await request.json();
 
@@ -73,7 +77,9 @@ export async function PATCH(
 
 	if (data) {
 		return Response.json({ id: data[0].id });
-	} else return error;
+	} else {
+		return error;
+	}
 }
 
 export async function DELETE(
@@ -81,15 +87,21 @@ export async function DELETE(
 	{ params }: { params: Promise<{ questionId: string }> },
 ) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { questionId } = await params;
 
 	const quizId = await getQuizIdForQuestion(questionId);
-	if (!quizId) return Response.json({ error: 'Question not found' }, { status: 404 });
+	if (!quizId) {
+		return Response.json({ error: 'Question not found' }, { status: 404 });
+	}
 
 	const activeError = await assertQuizNotActive(quizId);
-	if (activeError) return activeError;
+	if (activeError) {
+		return activeError;
+	}
 
 	const [data, error] = await runQuery(
 		async () =>
@@ -102,5 +114,7 @@ export async function DELETE(
 
 	if (data) {
 		return Response.json({});
-	} else return error;
+	} else {
+		return error;
+	}
 }

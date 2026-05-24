@@ -12,7 +12,9 @@ interface Quiz {
 
 export async function GET(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const [data, error] = await runQuery(
 		async () =>
@@ -24,7 +26,9 @@ export async function GET(request: Request) {
 				.order('created_at', { ascending: false }),
 	);
 
-	if (error) return error;
+	if (error) {
+		return error;
+	}
 
 	const sorted = data!.map((quiz) => ({
 		...quiz,
@@ -35,24 +39,34 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const quizData: Quiz = await request.json();
 	const scoringType: ScoringType = quizData.scoring_type ?? 'correct_count';
 
 	if (scoringType !== 'correct_count') {
 		const isPremium = await checkPremium(auth.channelId);
-		if (!isPremium) return Response.json({ error: 'Premium required for this scoring type' }, { status: 403 });
+		if (!isPremium) {
+			return Response.json({ error: 'Premium required for this scoring type' }, { status: 403 });
+		}
 	}
 
 	const [data, error] = await runQuery(
 		async () =>
 			await supabase
 				.from('quiz')
-				.insert({ title: quizData.title, streamer_id: auth.channelId, scoring_type: scoringType })
+				.insert({
+					title: quizData.title,
+					streamer_id: auth.channelId,
+					scoring_type: scoringType,
+				})
 				.select(),
 	);
 
-	if (error) return error;
+	if (error) {
+		return error;
+	}
 	return Response.json({ id: data![0].id });
 }

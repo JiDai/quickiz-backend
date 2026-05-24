@@ -9,7 +9,9 @@ const quizStateByBroadcast: Partial<Record<string, string>> = {
 
 export async function POST(request: Request) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const body: { stateName: string; stateData: unknown } = await request.json();
 	const { stateName, stateData } = body;
@@ -28,7 +30,9 @@ export async function POST(request: Request) {
 			.update({ state: newQuizState })
 			.eq('streamer_id', auth.channelId)
 			.neq('state', 'idle');
-		if (error) console.error('[/api/quiz/broadcast] Supabase update error:', error);
+		if (error) {
+			console.error('[/api/quiz/broadcast] Supabase update error:', error);
+		}
 	}
 
 	return Response.json({ message: 'ok' });

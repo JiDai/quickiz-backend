@@ -1,9 +1,14 @@
 import { checkAuth } from '../../../../utils/checkAuth';
 import supabase from '../../../../utils/supabase';
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
+export async function DELETE(
+	request: Request,
+	{ params }: { params: Promise<{ quizId: string }> },
+) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { quizId } = await params;
 
@@ -14,7 +19,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ q
 		.eq('streamer_id', auth.channelId)
 		.single();
 
-	if (!quiz) return Response.json({ error: 'Quiz not found' }, { status: 404 });
+	if (!quiz) {
+		return Response.json({ error: 'Quiz not found' }, { status: 404 });
+	}
 
 	const { data: questions } = await supabase
 		.from('question')
@@ -22,16 +29,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ q
 		.eq('quiz_id', quizId)
 		.is('deleted_at', null);
 
-	if (!questions?.length) return Response.json({});
+	if (!questions?.length) {
+		return Response.json({});
+	}
 
 	const questionIds = questions.map((q) => q.id);
 
-	const { error } = await supabase
-		.from('viewer_answer')
-		.delete()
-		.in('question_id', questionIds);
+	const { error } = await supabase.from('viewer_answer').delete().in('question_id', questionIds);
 
-	if (error) return Response.json({ error: error.message }, { status: 500 });
+	if (error) {
+		return Response.json({ error: error.message }, { status: 500 });
+	}
 
 	return Response.json({});
 }

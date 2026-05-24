@@ -4,17 +4,18 @@ import { QuestionRequest } from '../../../../types/questionRequest';
 import { runQuery } from '../../../../utils/runQuery';
 import supabase from '../../../../utils/supabase';
 
-export async function POST(
-	request: Request,
-	{ params }: { params: Promise<{ quizId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
 	const auth = await checkAuth(request);
-	if (auth instanceof Response) return auth;
+	if (auth instanceof Response) {
+		return auth;
+	}
 
 	const { quizId } = await params;
 
 	const activeError = await assertQuizNotActive(quizId);
-	if (activeError) return activeError;
+	if (activeError) {
+		return activeError;
+	}
 
 	const body: QuestionRequest = await request.json();
 
@@ -47,5 +48,7 @@ export async function POST(
 	console.log(`data: `, data, error);
 	if (data) {
 		return Response.json({ status: 'ok' });
-	} else return error;
+	} else {
+		return error;
+	}
 }
