@@ -51,6 +51,17 @@ export async function PATCH(
 		return Response.json({ error: 'Question not found' }, { status: 404 });
 	}
 
+	// Ownership check — prevent a streamer from editing another streamer's questions.
+	const { data: ownedQuiz } = await supabase
+		.from('quiz')
+		.select('id')
+		.eq('id', quizId)
+		.eq('streamer_id', auth.channelId)
+		.single();
+	if (!ownedQuiz) {
+		return Response.json({ error: 'Unauthorized' }, { status: 403 });
+	}
+
 	const activeError = await assertQuizNotActive(quizId);
 	if (activeError) {
 		return activeError;
@@ -96,6 +107,17 @@ export async function DELETE(
 	const quizId = await getQuizIdForQuestion(questionId);
 	if (!quizId) {
 		return Response.json({ error: 'Question not found' }, { status: 404 });
+	}
+
+	// Ownership check — prevent a streamer from deleting another streamer's questions.
+	const { data: ownedQuiz } = await supabase
+		.from('quiz')
+		.select('id')
+		.eq('id', quizId)
+		.eq('streamer_id', auth.channelId)
+		.single();
+	if (!ownedQuiz) {
+		return Response.json({ error: 'Unauthorized' }, { status: 403 });
 	}
 
 	const activeError = await assertQuizNotActive(quizId);

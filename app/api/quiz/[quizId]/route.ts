@@ -10,6 +10,7 @@ interface Quiz {
 	title: string;
 	description: string;
 	scoring_type?: ScoringType;
+	timer_duration?: number;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ quizId: string }> }) {
@@ -54,6 +55,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ qu
 	const updatePayload: Record<string, unknown> = {
 		title: quizData.title,
 		description: quizData.description,
+		...(quizData.timer_duration !== undefined && { timer_duration: quizData.timer_duration }),
 	};
 
 	if (quizData.scoring_type !== undefined) {

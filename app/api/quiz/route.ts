@@ -8,6 +8,7 @@ type ScoringType = 'correct_count' | 'time_bonus' | 'weighted';
 interface Quiz {
 	title: string;
 	scoring_type?: ScoringType;
+	timer_duration?: number;
 }
 
 export async function GET(request: Request) {
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 					title: quizData.title,
 					streamer_id: auth.channelId,
 					scoring_type: scoringType,
+					timer_duration: quizData.timer_duration ?? 30,
 				})
 				.select(),
 	);

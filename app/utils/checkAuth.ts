@@ -1,6 +1,6 @@
 import { createHmac } from 'crypto';
 
-type AuthResult = Response | { channelId: string };
+export type AuthResult = Response | { channelId: string; viewerOpaqueId: string };
 
 export async function checkAuth(request: Request): Promise<AuthResult> {
 	const authHeader = request.headers.get('authorization');
@@ -11,7 +11,7 @@ export async function checkAuth(request: Request): Promise<AuthResult> {
 	const token = authHeader.replace('Bearer ', '');
 
 	if (process.env.TWITCH_MOCK === 'true' && token === 'dev-token') {
-		return { channelId: 'dev-channel' };
+		return { channelId: 'dev-channel', viewerOpaqueId: 'dev-viewer' };
 	}
 
 	const parts = token.split('.');
@@ -34,5 +34,7 @@ export async function checkAuth(request: Request): Promise<AuthResult> {
 		return Response.json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	return { channelId: payload.channel_id };
+	// opaque_user_id is always present in Twitch Extension JWTs — it is a
+	// Twitch-issued identifier that cannot be forged by the client.
+	return { channelId: payload.channel_id, viewerOpaqueId: payload.opaque_user_id as string };
 }
