@@ -28,6 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ quiz
 				.select('*, questions:question!quiz_id(*)')
 				.eq('id', quizId)
 				.eq('streamer_id', auth.channelId)
+				.is('questions.deleted_at', null)
 				.single(),
 	);
 
