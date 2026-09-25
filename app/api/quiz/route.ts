@@ -24,6 +24,9 @@ export async function GET(request: Request) {
 				.select('*, questions:question!quiz_id(*)')
 				.eq('streamer_id', auth.channelId)
 				.is('deleted_at', null)
+				// Soft-deleted questions must never reach live-config: launching one makes
+				// /api/quiz/state (which excludes them) resolve to IDLE for viewers.
+				.is('questions.deleted_at', null)
 				.order('created_at', { ascending: false }),
 	);
 
